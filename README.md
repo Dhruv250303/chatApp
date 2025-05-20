@@ -31,7 +31,7 @@ Secure Chat Room is a web-based chat application built with Flask and SocketIO. 
 If your project is hosted on a Git repository, clone it. Otherwise, copy the project files to your local machine.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Dhruv250303/chatApp.git
 cd secure-chat-room
 ```
 
