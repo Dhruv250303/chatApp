@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Secure Chat Room</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      crossorigin="anonymous"
+    />
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"></script>
+    <style>
+      body {
+        padding-bottom: 60px;
+      }
+      .message-container {
+        margin-bottom: 10px;
+      }
+      .message-username {
+        font-weight: bold;
+        color: #ffa900;
+      }
+      .message-time {
+        font-size: 0.8em;
+        color: #6c757d;
+      }
+      .system-message {
+        font-style: italic;
+        color: #6c757d;
+      }
+      #user-list {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      .room-info {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+      }
+      #connection-status {
+        margin-top: 10px;
+        color: #dc3545;
+      }
+      footer {
+        background-color: #f8f9fa;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+      }
+      @media (max-width: 768px) {
+        .col-md-8,
+        .col-md-4 {
+          width: 100%;
+        }
+        #user-list {
+          max-height: 200px;
+        }
+      }
+    </style>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get("room");
+        if (!roomId) {
+          alert("No room ID provided in URL. Please use a valid room link.");
+          window.location.href = "/";
+          return;
+        }
+
+        console.log("Attempting to connect to SocketIO server...");
+        const socket = io('http://127.0.0.1:5000', {
+            transports: ['polling'],
+            reconnectionAttempts: 3,
+            reconnectionDelay: 1000
+        });
+
+        socket.on("connect", function () {
+          console.log("Successfully connected to SocketIO server");
+          $("#connection-status")
+            .text("Connected to server")
+            .css("color", "#28a745");
+        });
+
+        socket.on("connect_error", function (error) {
+          console.error("SocketIO connection error:", error);
+          $("#connection-status").text(
+            "Failed to connect to server: " + (error.message || "Unknown error")
+          );
+          alert(
+            "Failed to connect to the server. Please ensure the server is running and try again."
+          );
+        });
+
+        socket.on("reconnect_failed", function () {
+          console.error("Reconnection attempts failed");
+          $("#connection-status").text(
+            "Reconnection failed. Please refresh the page."
+          );
+          alert(
+            "Unable to reconnect to the server. Please refresh the page or try again later."
+          );
+        });
+
+        let username = "";
+
+        $("#join-form").on("submit", function (e) {
+          e.preventDefault();
+          username = $("#username").val().trim();
+          const key = $("#key").val().trim();
+          if (!username || !key) {
+            alert("Username and key are required!");
+            return;
+          }
+          console.log("Emitting join_room event with:", {
+            username,
+            key,
+            roomId,
+          });
+          socket.emit("join_room", { username, key, roomId });
+        });
+
+        socket.on("access_granted", function (data) {
+          console.log("Access granted:", data);
+          $("#join-form").hide();
+          $("#chat-interface").show();
+          $("#room-key").text(data.key);
+          $("#chat-username").val(username);
+          $("#room-theme").css("background-color", data.theme || "#eee");
+          data.messages.forEach((msg) => {
+            displayMessage(msg);
+          });
+        });
+
+        socket.on("access_denied", function (message) {
+          console.log("Access denied:", message);
+          alert(message);
+        });
+
+        socket.on("user_list", function (users) {
+          console.log("Updated user list:", users);
+          $("#user-list").empty();
+          users.forEach((user) => {
+            $("#user-list").append(
+              $("<li>").text(user).addClass("list-group-item")
+            );
+          });
+        });
+
+        socket.on("message", function (data) {
+          console.log("Received message:", data);
+          displayMessage(data);
+        });
+
+        socket.on("room_expired", function () {
+          console.log("Room expired");
+          alert("This room has expired!");
+          window.location.href = "/";
+        });
+
+        $("#send").on("click", function () {
+          sendMessage();
+        });
+
+        $("#message").on("keypress", function (e) {
+          if (e.key === "Enter") {
+            sendMessage();
+          }
+        });
+
+        function sendMessage() {
+          const message = $("#message").val().trim();
+          if (!message) {
+            alert("Message is required!");
+            return;
+          }
+          console.log("Sending message:", { username, message, roomId });
+          socket.emit("message", { username, message, roomId });
+          $("#message").val("");
+        }
+
+        function displayMessage(data) {
+          const timestamp = new Date(data.timestamp).toLocaleTimeString();
+          const messageClass = data.type === "system" ? "system-message" : "";
+          const messageHtml = `
+                    <div class="message-container ${messageClass}">
+                        <span class="message-username">${
+                          data.username || ""
+                        }</span>
+                        <span>${data.message}</span>
+                        <span class="message-time">[${timestamp}]</span>
+                    </div>`;
+          $("#messages").append(messageHtml);
+          $("#messages").scrollTop($("#messages")[0].scrollHeight);
+        }
+
+        socket.on("disconnect", function () {
+          console.log("Disconnected from server");
+          $("#connection-status")
+            .text("Disconnected from server")
+            .css("color", "#dc3545");
+          socket.emit("user_left", username);
+        });
+
+        window.onbeforeunload = function () {
+            socket.emit("user_left", username);
+        };
+    });
+    </script>
+  </head>
+
+  <body>
+    <div class="container py-5">
+      <div class="row d-flex justify-content-center">
+        <div class="col-md-8 col-lg-6 col-xl-4">
+          <div class="card">
+            <div
+              class="card-header d-flex justify-content-between align-items-center p-3"
+              style="border-top: 4px solid #ffa900"
+            >
+              <h5 class="mb-0">Secure Chat Room</h5>
+            </div>
+            <form id="join-form">
+              <div class="card-body">
+                <div class="input-group mb-3">
+                  <input
+                    class="form-control"
+                    type="text"
+                    id="username"
+                    placeholder="Enter Username"
+                    required
+                  />
+                </div>
+                <div class="input-group mb-3">
+                  <input
+                    class="form-control"
+                    type="password"
+                    id="key"
+                    placeholder="Enter Room Key"
+                    required
+                  /> 
+                </div>
+                <button class="btn btn-warning w-100" type="submit">
+                  Join Room
+                </button>
+                <div id="connection-status">Connecting to server...</div>
+              </div>
+            </form>
+            <div id="chat-interface" style="display: none">
+              <div
+                class="card-body"
+                id="room-theme"
+                style="position: relative; height: 400px; overflow-y: auto"
+              >
+                <div class="room-info mb-3">
+                  <p>Room Key: <span id="room-key"></span></p>
+                </div>
+                <div id="messages"></div>
+              </div>
+              <div
+                class="card-footer text-muted d-flex justify-content-start align-items-center p-3"
+              >
+                <div class="input-group mb-0">
+                  <input
+                    class="form-control"
+                    type="text"
+                    id="chat-username"
+                    placeholder="Username"
+                    readonly
+                  />
+                  <input
+                    class="form-control"
+                    type="text"
+                    id="message"
+                    placeholder="Message"
+                    required
+                  />
+                  <button class="btn btn-warning" id="send">Send</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 col-lg-3 col-xl-2">
+          <div class="card">
+            <div class="card-header p-3" style="border-top: 4px solid #ffa900">
+              <h5 class="mb-0">Online Users</h5>
+            </div>
+            <div
+              class="card-body"
+              id="user-list"
+              style="position: relative; height: 400px"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="text-center text-muted py-3">
+      © 2025 Dhruv Gahlot. All Rights Reserved.
+    </footer>
+  </body>
+</html>

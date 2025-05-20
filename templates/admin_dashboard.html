@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            padding-bottom: 60px;
+        }
+        footer {
+            background-color: #f8f9fa;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .list-group-item {
+            word-break: break-all;
+        }
+        @media (max-width: 576px) {
+            .col-md-8 {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row d-flex justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card">
+                    <div class="card-header p-3" style="border-top: 4px solid #ffa900;">
+                        <h5 class="mb-0">Admin Dashboard</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <div class="input-group mb-3">
+                                <input class="form-control" type="number" name="duration" placeholder="Room duration (minutes)" min="1" required>
+                            </div>
+                            <div class="input-group mb-3">
+                                <label class="input-group-text" for="theme">Room Theme</label>
+                                <input class="form-control" type="color" name="theme" id="theme" value="#eeeeee">
+                            </div>
+                            <button class="btn btn-warning w-100" type="submit">Create Room</button>
+                        </form>
+                        {% if room_url %}
+                            <div class="mt-3">
+                                <p><strong>Room URL:</strong> <a href="{{ room_url }}" target="_blank">{{ room_url }}</a></p>
+                                <p><strong>Room Key:</strong> {{ key }}</p>
+                            </div>
+                        {% endif %}
+                        <h6 class="mt-4">Active Rooms</h6>
+                        <ul class="list-group">
+                            {% for room_id, room in rooms.items() %}
+                                <li class="list-group-item">
+                                    <strong>Room ID:</strong> {{ room_id }}<br>
+                                    <strong>Key:</strong> {{ room.key }}<br>
+                                    <strong>Expiry:</strong> {{ room.expiry }}<br>
+                                    <strong>Users:</strong> {{ room.users | length }}
+                                </li>
+                            {% endfor %}
+                            {% if not rooms %}
+                                <li class="list-group-item">No active rooms.</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="text-center text-muted py-3">
+        © 2025 Dhruv Gahlot. All Rights Reserved.
+    </footer>
+</body>
+</html>

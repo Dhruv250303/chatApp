@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <style>
+        body {
+            padding-bottom: 60px;
+        }
+        footer {
+            background-color: #f8f9fa;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        @media (max-width: 576px) {
+            .col-md-6 {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row d-flex justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <div class="card-header p-3" style="border-top: 4px solid #ffa900;">
+                        <h5 class="mb-0">Admin Login</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            <div class="input-group mb-3">
+                                <input class="form-control" type="text" name="username" placeholder="Username" required>
+                            </div>
+                            <div class="input-group mb-3">
+                                <input class="form-control" type="password" name="password" placeholder="Password" required>
+                            </div>
+                            <button class="btn btn-warning w-100" type="submit">Login</button>
+                            {% if error %}
+                                <div class="text-danger mt-3">{{ error }}</div>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="text-center text-muted py-3">
+        © 2025 Dhruv Gahlot. All Rights Reserved.
+    </footer>
+</body>
+</html>
